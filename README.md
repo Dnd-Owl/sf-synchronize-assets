@@ -1,0 +1,1 @@
+# sf-synchronize-assets
