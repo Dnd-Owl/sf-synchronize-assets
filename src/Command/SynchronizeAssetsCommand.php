@@ -67,8 +67,19 @@ class SynchronizeAssetsCommand extends Command
         $i = 1;
         $j = 1;
         foreach ($assets->all('A_visuelsexternes') as $asset) {
+
+            // if */externes/data_1.txt exist
+            if (file_exists('docs/assets/externes/data_1.txt')) {
+                $assetsAlreadyTake = json_decode(file_get_contents('docs/assets/externes/data_1.txt'));
+
+
+                dump($assetsAlreadyTake);
+
+            }
+
+
             $allAssets[] = $asset;
-            if ($i === 10000) {
+            if ($i === 13000) {
                 file_put_contents('docs/assets/externes/data_' . $j. '.txt', json_encode($allAssets));
                 $i = 1;
                 $j++;
