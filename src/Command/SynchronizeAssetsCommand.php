@@ -34,6 +34,9 @@ class SynchronizeAssetsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $progressBar = new ProgressBar($output, 25183);
+        $progressBar->start();
+
         $io = new SymfonyStyle($input, $output);
 
         $clientBuilder = new AkeneoPimClientBuilder('https://staging-louispion.cloud.akeneo.com/');
@@ -46,6 +49,7 @@ class SynchronizeAssetsCommand extends Command
         $allAssets = [];
         foreach ($assets->all('A_visuelsinternes') as $asset) {
             $allAssets[] = $asset;
+            $progressBar->advance();
         }
         file_put_contents('docs/assets/internes/data.txt', json_encode($allAssets));
 
@@ -54,6 +58,7 @@ class SynchronizeAssetsCommand extends Command
         $allAssets = [];
         foreach ($assets->all('A_autresmedias') as $asset) {
             $allAssets[] = $asset;
+            $progressBar->advance();
         }
         file_put_contents('docs/assets/autres/data.txt', json_encode($allAssets));
 
@@ -63,11 +68,12 @@ class SynchronizeAssetsCommand extends Command
         $j = 1;
         foreach ($assets->all('A_visuelsexternes') as $asset) {
             $allAssets[] = $asset;
-            if ($i === 500) {
+            if ($i === 10000) {
                 file_put_contents('docs/assets/externes/data_' . $j. '.txt', json_encode($allAssets));
                 $i = 1;
                 $j++;
             }
+            $progressBar->advance();
             $i++;
         }
 
