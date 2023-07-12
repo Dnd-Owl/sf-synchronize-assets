@@ -16,6 +16,7 @@ use Symfony\Component\Console\{
     Output\OutputInterface,
     Style\SymfonyStyle
 };
+use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 
 /**
@@ -56,7 +57,7 @@ class PostAssetsCommand extends Command
         foreach ($families as $family) {
             $assets = json_decode(file_get_contents('docs/assets/' . array_keys($family)[0] . '/data.txt'), true);
 
-            $this->uploadAssets($client, array_values($family)[0], $assets);
+            $this->uploadAssets($client->getToken(), array_values($family)[0], $assets, $input->getArgument('url'));
         }
 
         // $mediaFileCode = $client->getAssetMediaFileApi()->create('????????.png');
@@ -65,9 +66,11 @@ class PostAssetsCommand extends Command
         return Command::SUCCESS;
     }
 
-    public function uploadAssets(AkeneoPimClientInterface $client, string $family, array $assets):void
+    public function uploadAssets(string $token, string $family, array $assets, string $url):void
     {
-        $headers = [];
+        $headers = [
+            'Authorization' => 'Bearer' . $token
+        ];
 
         foreach ($assets as $asset) {
             $body = [
@@ -88,15 +91,9 @@ class PostAssetsCommand extends Command
                 "updated"=> new \DateTime()
             ];
 
-            $request = new Request('PUT', '', $headers, $body);
-
-            //$client->getAssetApi()->upsert($asset['code'], [
-            //    'localizable'     => null,
-            //    'description'     => 'The wonderful unicorn',
-            //    'end_of_use'      => '2042-11-21',
-            //    'tags'            => ['colored', 'flowers'],
-            //    'categories'      => ['face', 'pack'],
-            //]);
+            $client = new Client();
+            $request = new Request('PATCH', $url . 'api/rest/v1/asset-families/' . $family . '/assets', $headers, json_encode($body));
+            $response = $client->sendAsync($request);
         }
     }
 }
