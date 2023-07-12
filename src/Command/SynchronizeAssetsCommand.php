@@ -36,18 +36,10 @@ class SynchronizeAssetsCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $source = $input->getArgument('source/host')[0];
-        $host = $input->getArgument('source/host')[1];
-
         $clientBuilder = new AkeneoPimClientBuilder('https://staging-louispion.cloud.akeneo.com/');
-
-
-
         $client = $clientBuilder->buildAuthenticatedByPassword('7_gbsap62ugy88gkwkcogowcs0o0sowo8gs4gk8wwgs8s0gk888', '3plq4eocxkyswc0cgscw44gsgk0g0cgkw4kggg0s4408gsg4gk', 'dataflow', 'LCoKmMVQwc7gq^');
 
-        $mediaFile = $client->getProductMediaFileApi()->listPerPage(10);
         $assets = $client->getAssetManagerApi();
-        //dump($assets->all('A_visuelsexternes'));
 
 
         // Put ALL assets of A_visuelsinternes family in .txt
@@ -67,15 +59,19 @@ class SynchronizeAssetsCommand extends Command
 
         // Put ALL assets of A_visuelsexternes family in .txt
         $allAssets = [];
+        $i = 1;
+        $j = 1;
         foreach ($assets->all('A_visuelsexternes') as $asset) {
             $allAssets[] = $asset;
+            if ($i === 500) {
+                file_put_contents('docs/assets/externes/data_' . $j. '.txt', json_encode($allAssets));
+                $i = 1;
+                $j++;
+            }
+            $i++;
         }
-        file_put_contents('docs/assets/externes/data.txt', json_encode($allAssets));
-
-
 
         // Put ALL assets of others family in .txt
-
 
         // call api v5
         // CALL AUTH
@@ -87,8 +83,6 @@ class SynchronizeAssetsCommand extends Command
         // CALL AUTH
         // boucle sur le json provenant du fichier text
             // Call POST pour ajouter les médias
-            //     $mediaFileCode = $client->getAssetMediaFileApi()->create('????????.png');
-
             // Call POST pour ajouter les assets et les links à leur média
 
 
