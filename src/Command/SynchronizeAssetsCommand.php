@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use Akeneo\Pim\ApiClient\AkeneoPimClientBuilder;
+use Akeneo\Pim\ApiClient\Api\AssetManager\AssetApiInterface as AssetManagerApiInterface;
 use Symfony\Component\Console\{
     Attribute\AsCommand,
     Command\Command,
@@ -53,14 +54,7 @@ class SynchronizeAssetsCommand extends Command
         return Command::SUCCESS;
     }
 
-    /**
-     * @param $assets
-     * @param array $family
-     * @param ProgressBar $progressBar
-     *
-     * @return void
-     */
-    public function getAssets($assets, array $family, ProgressBar $progressBar): void
+    public function getAssets(AssetManagerApiInterface $assets, array $family, ProgressBar $progressBar): void
     {
         $totalFamilyAssets = 0;
         $numberFile = null;
