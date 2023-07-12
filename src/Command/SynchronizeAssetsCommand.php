@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Command;
 
 use Akeneo\Pim\ApiClient\AkeneoPimClientBuilder;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\{
+    Attribute\AsCommand,
+    Command\Command,
+    Input\InputInterface,
+    Output\OutputInterface,
+    Style\SymfonyStyle,
+    Helper\ProgressBar
+};
 
 /**
  * @author    Agence Dn'D <contact@dnd.fr>
@@ -22,74 +22,62 @@ use Symfony\Component\Console\Helper\ProgressBar;
  */
 #[AsCommand(
     name: 'app:synchronize-assets',
-    description: 'Add a short description for your command',
+    description: 'Get akeneo assets',
 )]
 class SynchronizeAssetsCommand extends Command
 {
-    protected function configure(): void
-    {
-        $this
-            ->addArgument('source/host', InputArgument::IS_ARRAY|InputArgument::REQUIRED, 'Who do you want to greet?');
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $io = new SymfonyStyle($input, $output);
+
         $progressBar = new ProgressBar($output, 25183);
         $progressBar->start();
 
-        $io = new SymfonyStyle($input, $output);
-
         $clientBuilder = new AkeneoPimClientBuilder('https://staging-louispion.cloud.akeneo.com/');
         $client = $clientBuilder->buildAuthenticatedByPassword('7_gbsap62ugy88gkwkcogowcs0o0sowo8gs4gk8wwgs8s0gk888', '3plq4eocxkyswc0cgscw44gsgk0g0cgkw4kggg0s4408gsg4gk', 'dataflow', 'LCoKmMVQwc7gq^');
-
         $assets = $client->getAssetManagerApi();
 
+        $families = [
+            ['internes' => 'A_visuelsinternes'],
+            ['autres' => 'A_autresmedias'],
+            ['externes' => 'A_visuelsexternes']
+        ];
 
-        // Put ALL assets of A_visuelsinternes family in .txt
-        $allAssets = [];
-        foreach ($assets->all('A_visuelsinternes') as $asset) {
-            $allAssets[] = $asset;
-            $progressBar->advance();
+        foreach ($families as $family) {
+            $this->getAssets($assets, $family, $progressBar);
         }
-        file_put_contents('docs/assets/internes/data.txt', json_encode($allAssets));
 
-
-        // Put ALL assets of A_autresmedias family in .txt
-        $allAssets = [];
-        foreach ($assets->all('A_autresmedias') as $asset) {
-            $allAssets[] = $asset;
-            $progressBar->advance();
-        }
-        file_put_contents('docs/assets/autres/data.txt', json_encode($allAssets));
-
-        // Put ALL assets of A_visuelsexternes family in .txt
-        $allAssets = [];
-        $i = 1;
-        $j = 1;
-        foreach ($assets->all('A_visuelsexternes') as $asset) {
-
-            // if */externes/data_1.txt exist
-            if (file_exists('docs/assets/externes/data_1.txt')) {
-                $assetsAlreadyTake = json_decode(file_get_contents('docs/assets/externes/data_1.txt'));
-
-
-                dump($assetsAlreadyTake);
-
-            }
-
-
-            $allAssets[] = $asset;
-            if ($i === 13000) {
-                file_put_contents('docs/assets/externes/data_' . $j. '.txt', json_encode($allAssets));
-                $i = 1;
-                $j++;
-            }
-            $progressBar->advance();
-            $i++;
-        }
+        $progressBar->finish();
 
         $io->success('SUCCESS');
-
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param $assets
+     * @param array $family
+     * @param ProgressBar $progressBar
+     *
+     * @return void
+     */
+    public function getAssets($assets, array $family, ProgressBar $progressBar): void
+    {
+        $totalFamilyAssets = 0;
+        $numberFile = null;
+
+        $allAssets = [];
+        foreach ($assets->all(array_values($family)[0]) as $asset) {
+            // If we have more than 13.000 assets in a family we create a first .txt document
+            if ($totalFamilyAssets >= 13000) {
+                file_put_contents('docs/assets/' . array_keys($family)[0] . '/data1.txt', json_encode($allAssets));
+                $numberFile = 2;
+                $allAssets = [];
+            }
+
+            $allAssets[] = $asset;
+            $totalFamilyAssets++;
+            $progressBar->advance();
+        }
+        file_put_contents('docs/assets/' . array_keys($family)[0] . '/data' . $numberFile . '.txt', json_encode($allAssets));
     }
 }
