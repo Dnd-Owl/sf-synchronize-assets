@@ -7,7 +7,6 @@ namespace App\Command;
 use Akeneo\Pim\ApiClient\{
     AkeneoPimClientBuilder,
     AkeneoPimClientInterface,
-    Api\AssetManager\AssetApiInterface as AssetManagerApiInterface
 };
 use Symfony\Component\Console\{
     Attribute\AsCommand,
@@ -17,6 +16,7 @@ use Symfony\Component\Console\{
     Output\OutputInterface,
     Style\SymfonyStyle
 };
+use GuzzleHttp\Psr7\Request;
 
 /**
  * @author    Agence Dn'D <contact@dnd.fr>
@@ -54,25 +54,49 @@ class PostAssetsCommand extends Command
         ];
 
         foreach ($families as $family) {
-            $assets = json_decode(file_get_contents('docs/assets/' . array_keys($family)[0] . '/data.txt'));
+            $assets = json_decode(file_get_contents('docs/assets/' . array_keys($family)[0] . '/data.txt'), true);
 
             $this->uploadAssets($client, array_values($family)[0], $assets);
         }
-        
+
+        // $mediaFileCode = $client->getAssetMediaFileApi()->create('????????.png');
+
         $io->success('SUCCESS');
         return Command::SUCCESS;
     }
 
-    public function uploadAssets(AkeneoPimClientInterface $client, string $family, AssetManagerApiInterface $assets):void
+    public function uploadAssets(AkeneoPimClientInterface $client, string $family, array $assets):void
     {
+        $headers = [];
+
         foreach ($assets as $asset) {
-            $client->getAssetApi()->upsert($asset['code'], [
-                'localizable'     => null,
-                'description'     => 'The wonderful unicorn',
-                'end_of_use'      => '2042-11-21',
-                'tags'            => ['colored', 'flowers'],
-                'categories'      => ['face', 'pack'],
-            ]);
+            $body = [
+                "code"=> $asset['code'],
+                "values"=> [
+                    "media"=> [
+                        "locale"=> null,
+                        "channel"=> null,
+                        "data"=> $asset['values']['media'][0]['data']
+                    ],
+                ],
+                "end_of_use_date"=> [
+                      "locale"=> null,
+                    "channel"=> null,
+                    "data"=> null
+                ],
+                "created"=> new \DateTime(),
+                "updated"=> new \DateTime()
+            ];
+
+            $request = new Request('PUT', '', $headers, $body);
+
+            //$client->getAssetApi()->upsert($asset['code'], [
+            //    'localizable'     => null,
+            //    'description'     => 'The wonderful unicorn',
+            //    'end_of_use'      => '2042-11-21',
+            //    'tags'            => ['colored', 'flowers'],
+            //    'categories'      => ['face', 'pack'],
+            //]);
         }
     }
 }
