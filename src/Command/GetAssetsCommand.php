@@ -22,10 +22,10 @@ use Symfony\Component\Console\{
  * @link      https://www.dnd.fr/
  */
 #[AsCommand(
-    name: 'app:synchronize-assets',
+    name: 'app:get-assets',
     description: 'Get akeneo assets',
 )]
-class SynchronizeAssetsCommand extends Command
+class GetAssetsCommand extends Command
 {
     protected function configure(): void
     {
