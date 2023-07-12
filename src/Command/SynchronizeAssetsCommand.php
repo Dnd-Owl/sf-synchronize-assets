@@ -9,11 +9,11 @@ use Akeneo\Pim\ApiClient\Api\AssetManager\AssetApiInterface as AssetManagerApiIn
 use Symfony\Component\Console\{
     Attribute\AsCommand,
     Command\Command,
+    Input\InputArgument,
     Input\InputInterface,
     Output\OutputInterface,
     Style\SymfonyStyle,
-    Helper\ProgressBar
-};
+    Helper\ProgressBar};
 
 /**
  * @author    Agence Dn'D <contact@dnd.fr>
@@ -27,11 +27,17 @@ use Symfony\Component\Console\{
 )]
 class SynchronizeAssetsCommand extends Command
 {
+    protected function configure(): void
+    {
+        $this
+            ->addArgument('totalAssets', InputArgument::OPTIONAL, 'Total assets.', 25183);
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
-        $progressBar = new ProgressBar($output, 25183);
+        $progressBar = new ProgressBar($output, intval($input->getArgument('totalAssets')));
         $progressBar->start();
 
         $clientBuilder = new AkeneoPimClientBuilder('https://staging-louispion.cloud.akeneo.com/');
@@ -64,7 +70,7 @@ class SynchronizeAssetsCommand extends Command
             // If we have more than 13.000 assets in a family we create a first .txt document
             if ($totalFamilyAssets >= 13000) {
                 file_put_contents('docs/assets/' . array_keys($family)[0] . '/data1.txt', json_encode($allAssets));
-                $numberFile = 2;
+                $numberFile = $numberFile? $numberFile+1 :2;
                 $totalFamilyAssets = 0;
                 $allAssets = [];
             }
