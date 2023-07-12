@@ -1,16 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Command;
 
-use Akeneo\Pim\ApiClient\AkeneoPimClientBuilder;
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Console\Helper\ProgressBar;
+use Akeneo\Pim\ApiClient\{
+    AkeneoPimClientBuilder,
+    AkeneoPimClientInterface,
+    Api\AssetManager\AssetApiInterface as AssetManagerApiInterface
+};
+use Symfony\Component\Console\{
+    Attribute\AsCommand,
+    Command\Command,
+    Input\InputArgument,
+    Input\InputInterface,
+    Output\OutputInterface,
+    Style\SymfonyStyle
+};
 
 /**
  * @author    Agence Dn'D <contact@dnd.fr>
@@ -20,28 +26,46 @@ use Symfony\Component\Console\Helper\ProgressBar;
  */
 #[AsCommand(
     name: 'app:post-assets',
-    description: 'Add a short description for your command',
+    description: 'Post assets',
 )]
 class PostAssetsCommand extends Command
 {
     protected function configure(): void
     {
+        $this
+            ->addArgument('url', InputArgument::REQUIRED, 'URL.')
+            ->addArgument('clientId', InputArgument::REQUIRED, 'Client ID.')
+            ->addArgument('secret', InputArgument::REQUIRED, 'Secret.')
+            ->addArgument('username', InputArgument::REQUIRED, 'Username.')
+            ->addArgument('password', InputArgument::REQUIRED, 'Password.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
+        $clientBuilder = new AkeneoPimClientBuilder($input->getArgument('url'));
+        $client = $clientBuilder->buildAuthenticatedByPassword($input->getArgument('clientId'), $input->getArgument('secret'), $input->getArgument('username'), $input->getArgument('password'));
 
+        $families = [
+            ['internes' => 'A_visuelsinternes'],
+            ['autres' => 'A_autresmedias'],
+            ['externes' => 'A_visuelsexternes']
+        ];
 
-        $clientBuilder = new AkeneoPimClientBuilder('http://localhost:8080/');
-        $client = $clientBuilder->buildAuthenticatedByPassword('1_51dx3gjhxpk4s0844sksk4g44ggok04co0g8o88okk0wkook88', '4vnbto600su8w4ckosooo080kko4gww0g400o4kgw4ks48w8sc', 'dyoun', 'LouisPion2023');
+        foreach ($families as $family) {
+            $assets = json_decode(file_get_contents('docs/assets/' . array_keys($family)[0] . '/data.txt'));
 
-        $assetsOthers = json_decode(file_get_contents('docs/assets/autres/data.txt'));
+            $this->uploadAssets($client, array_values($family)[0], $assets);
+        }
+        
+        $io->success('SUCCESS');
+        return Command::SUCCESS;
+    }
 
-        foreach ($assetsOthers as $asset) {
-            dump($asset);
-
+    public function uploadAssets(AkeneoPimClientInterface $client, string $family, AssetManagerApiInterface $assets):void
+    {
+        foreach ($assets as $asset) {
             $client->getAssetApi()->upsert($asset['code'], [
                 'localizable'     => null,
                 'description'     => 'The wonderful unicorn',
@@ -50,10 +74,5 @@ class PostAssetsCommand extends Command
                 'categories'      => ['face', 'pack'],
             ]);
         }
-
-
-        // $mediaFileCode = $client->getAssetMediaFileApi()->create('????????.png');
-
-        return Command::SUCCESS;
     }
 }
