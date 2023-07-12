@@ -65,6 +65,7 @@ class SynchronizeAssetsCommand extends Command
             if ($totalFamilyAssets >= 13000) {
                 file_put_contents('docs/assets/' . array_keys($family)[0] . '/data1.txt', json_encode($allAssets));
                 $numberFile = 2;
+                $totalFamilyAssets = 0;
                 $allAssets = [];
             }
 
