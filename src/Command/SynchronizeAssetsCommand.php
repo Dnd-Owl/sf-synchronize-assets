@@ -30,6 +30,11 @@ class SynchronizeAssetsCommand extends Command
     protected function configure(): void
     {
         $this
+            ->addArgument('url', InputArgument::REQUIRED, 'URL.')
+            ->addArgument('clientId', InputArgument::REQUIRED, 'Client ID.')
+            ->addArgument('secret', InputArgument::REQUIRED, 'Secret.')
+            ->addArgument('username', InputArgument::REQUIRED, 'Username.')
+            ->addArgument('password', InputArgument::REQUIRED, 'Password.')
             ->addArgument('totalAssets', InputArgument::OPTIONAL, 'Total assets.', 25183);
     }
 
@@ -37,12 +42,12 @@ class SynchronizeAssetsCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
+        $clientBuilder = new AkeneoPimClientBuilder($input->getArgument('url'));
+        $client = $clientBuilder->buildAuthenticatedByPassword($input->getArgument('clientId'), $input->getArgument('secret'), $input->getArgument('username'), $input->getArgument('password'));
+        $assets = $client->getAssetManagerApi();
+
         $progressBar = new ProgressBar($output, intval($input->getArgument('totalAssets')));
         $progressBar->start();
-
-        $clientBuilder = new AkeneoPimClientBuilder('https://staging-louispion.cloud.akeneo.com/');
-        $client = $clientBuilder->buildAuthenticatedByPassword('7_gbsap62ugy88gkwkcogowcs0o0sowo8gs4gk8wwgs8s0gk888', '3plq4eocxkyswc0cgscw44gsgk0g0cgkw4kggg0s4408gsg4gk', 'dataflow', 'LCoKmMVQwc7gq^');
-        $assets = $client->getAssetManagerApi();
 
         $families = [
             ['internes' => 'A_visuelsinternes'],
@@ -68,7 +73,7 @@ class SynchronizeAssetsCommand extends Command
         $allAssets = [];
         foreach ($assets->all(array_values($family)[0]) as $asset) {
             // If we have more than 13.000 assets in a family we create a first .txt document
-            if ($totalFamilyAssets >= 13000) {
+            if (count($allAssets) >= 13000) {
                 file_put_contents('docs/assets/' . array_keys($family)[0] . '/data1.txt', json_encode($allAssets));
                 $numberFile = $numberFile? $numberFile+1 :2;
                 $totalFamilyAssets = 0;
