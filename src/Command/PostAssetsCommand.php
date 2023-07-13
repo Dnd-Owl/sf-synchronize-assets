@@ -97,11 +97,9 @@ class PostAssetsCommand extends Command
                 "updated"=> new \DateTime()
             ];
 
-
-
             $client = new Client();
             $request = new Request('PATCH', $url . 'api/rest/v1/asset-families/' . $family . '/assets', $headers, json_encode($body));
-            $response = $client->sendAsync($request);
+            $client->sendAsync($request);
         }
     }
 
