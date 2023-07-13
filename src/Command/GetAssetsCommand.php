@@ -67,7 +67,7 @@ class GetAssetsCommand extends Command
 
     public function getFamilies(): array|null
     {
-        if (!file_exists(CommandInterface::PATH_FAMILIES . 'families.csv')) {
+        if (!file_exists(CommandInterface::PATH_FAMILIES)) {
             return null;
         }
 
@@ -75,7 +75,7 @@ class GetAssetsCommand extends Command
         $families = [];
         $headers = '';
 
-        $csvFile = file(CommandInterface::PATH_FAMILIES . 'families.csv');
+        $csvFile = file(CommandInterface::PATH_FAMILIES);
         foreach ($csvFile as $index => $line) {
             if ($index === 0) {
                 $headers = str_getcsv($line, $separator);

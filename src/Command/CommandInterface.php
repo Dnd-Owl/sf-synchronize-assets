@@ -14,7 +14,7 @@ interface CommandInterface
 {
     public const PATH_ASSETS = 'docs/assets/';
 
-    public const PATH_FAMILIES = 'docs/families/';
+    public const PATH_FAMILIES = 'docs/families/families.csv';
 
     public const PATH_MEDIA = 'docs/media/';
 
