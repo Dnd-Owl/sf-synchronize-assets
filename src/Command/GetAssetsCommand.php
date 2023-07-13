@@ -14,6 +14,7 @@ use Symfony\Component\Console\{
     Output\OutputInterface,
     Style\SymfonyStyle,
     Helper\ProgressBar};
+use Symfony\Component\Finder\Finder;
 
 /**
  * @author    Agence Dn'D <contact@dnd.fr>
@@ -93,7 +94,6 @@ class GetAssetsCommand extends Command
         $alreadyProcess = file_get_contents(CommandInterface::LIST_CODES);
 
         $allAssets = [];
-        $numberFile = 1;
         $totalFamilyAssets = 0;
 
         foreach ($client->getAssetManagerApi()->all($family['code']) as $asset) {
@@ -106,9 +106,8 @@ class GetAssetsCommand extends Command
             $totalFamilyAssets++;
 
             if (count($allAssets) >= $batchSize) {
-                $this->downloadAssets($family, $numberFile, $allAssets);
+                $this->downloadAssets($family, $allAssets);
 
-                $numberFile++;
                 $totalFamilyAssets = 0;
                 $allAssets = [];
             }
@@ -118,12 +117,23 @@ class GetAssetsCommand extends Command
         }
 
         if (!empty($allAssets)) {
-            $this->downloadAssets($family, $numberFile, $allAssets);
+            $this->downloadAssets($family, $allAssets);
         }
     }
 
-    public function downloadAssets(array $family, int $numberFile, array $allAssets): void
+    public function downloadAssets(array $family, array $allAssets): void
     {
+        $numberFile = 0;
+        $finder = new Finder();
+        $finder->files()->in(CommandInterface::PATH_ASSETS . $family['folder']);
+
+        if ($finder->hasResults()) {
+            foreach ($finder as $file) {
+                $numberFile = intval(substr($file->getRelativePathname(), strlen('data_')+strpos($file->getRelativePathname(), '-'), (strlen($file->getRelativePathname()) - strpos($file->getRelativePathname(), '.txt'))*(-1)));
+                $numberFile++;
+            }
+        }
+
         $fileName = CommandInterface::PATH_ASSETS . $family['folder'] . '/data_' . $numberFile . '.txt';
 
         file_put_contents($fileName, json_encode($allAssets));
