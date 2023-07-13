@@ -53,18 +53,19 @@ class PostAssetsCommand extends Command
         ];
 
         foreach ($families as $family) {
-            $assets = json_decode(file_get_contents('docs/assets/' . array_keys($family)[0] . '/data.txt'), true);
+            $files = array_diff(scandir('docs/assets/' . array_keys($family)[0], SCANDIR_SORT_DESCENDING), ['..', '.', '.gitkeep']);
+            foreach ($files as $file) {
+                $assets = json_decode(file_get_contents('docs/assets/' . array_keys($family)[0] . '/' . $file), true);
 
-            $this->uploadAssets($client, array_values($family)[0], $assets, $input->getArgument('url'));
+                $this->uploadAssetsAndMedias($client, array_values($family)[0], $assets, $input->getArgument('url'));
+            }
         }
-
-        // $mediaFileCode = $client->getAssetMediaFileApi()->create('????????.png');
 
         $io->success('SUCCESS');
         return Command::SUCCESS;
     }
 
-    public function uploadAssets(AkeneoPimClientInterface $client, string $family, array $assets, string $url):void
+    public function uploadAssetsAndMedias(AkeneoPimClientInterface $client, string $family, array $assets, string $url):void
     {
         $headers = [
             'Authorization' => 'Bearer' . $client->getToken()
