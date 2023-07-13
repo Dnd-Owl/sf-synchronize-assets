@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use Akeneo\Pim\ApiClient\{
-    AkeneoPimClientBuilder,
-    AkeneoPimClientInterface,
-};
+use Akeneo\Pim\ApiClient\AkeneoPimClientBuilder;
+use Akeneo\Pim\ApiClient\AkeneoPimClientInterface;
 use Symfony\Component\Console\{
     Attribute\AsCommand,
     Command\Command,
@@ -57,7 +55,7 @@ class PostAssetsCommand extends Command
         foreach ($families as $family) {
             $assets = json_decode(file_get_contents('docs/assets/' . array_keys($family)[0] . '/data.txt'), true);
 
-            $this->uploadAssets($client->getToken(), array_values($family)[0], $assets, $input->getArgument('url'));
+            $this->uploadAssets($client, array_values($family)[0], $assets, $input->getArgument('url'));
         }
 
         // $mediaFileCode = $client->getAssetMediaFileApi()->create('????????.png');
@@ -66,13 +64,19 @@ class PostAssetsCommand extends Command
         return Command::SUCCESS;
     }
 
-    public function uploadAssets(string $token, string $family, array $assets, string $url):void
+    public function uploadAssets(AkeneoPimClientInterface $client, string $family, array $assets, string $url):void
     {
         $headers = [
-            'Authorization' => 'Bearer' . $token
+            'Authorization' => 'Bearer' . $client->getToken()
         ];
 
         foreach ($assets as $asset) {
+            if (isset($asset['values']['media'][0]['data'])) {
+                $this->downloadMedia($asset);
+                $this->uploadMedia($client, $asset);
+                $this->deleteMedia();
+            }
+
             $body = [
                 "code"=> $asset['code'],
                 "values"=> [
@@ -91,9 +95,38 @@ class PostAssetsCommand extends Command
                 "updated"=> new \DateTime()
             ];
 
+
+
             $client = new Client();
             $request = new Request('PATCH', $url . 'api/rest/v1/asset-families/' . $family . '/assets', $headers, json_encode($body));
             $response = $client->sendAsync($request);
         }
+    }
+
+    public function downloadMedia(array $asset): void
+    {
+        $clientBuilder = new AkeneoPimClientBuilder('https://staging-louispion.cloud.akeneo.com/');
+        $client = $clientBuilder->buildAuthenticatedByPassword('7_gbsap62ugy88gkwkcogowcs0o0sowo8gs4gk8wwgs8s0gk888', '3plq4eocxkyswc0cgscw44gsgk0g0cgkw4kggg0s4408gsg4gk', 'dataflow', 'LCoKmMVQwc7gq^');
+
+        $mediaFile = $client->getAssetMediaFileApi()->download($asset['values']['media'][0]['data']);
+
+        file_put_contents('docs/media/media_asset.jpg', $mediaFile->getBody()->getContents());
+    }
+
+    public function uploadMedia(AkeneoPimClientInterface $client, array $asset): void
+    {
+        // WIP
+        $regex = '/^(.*\/).*$/';
+        preg_match($regex, $asset['values']['media'][0]['data'], $matches);
+        $path = $matches[1];
+
+        if (!file_exists($path)) {
+            mkdir($path, 0777, true);
+        }
+    }
+
+    public function deleteMedia(): void
+    {
+        unlink('docs/media/media_asset.jpg');
     }
 }
