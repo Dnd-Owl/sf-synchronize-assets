@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use Akeneo\Pim\ApiClient\AkeneoPimClientBuilder;
-use Akeneo\Pim\ApiClient\Api\AssetManager\AssetApiInterface as AssetManagerApiInterface;
+use Akeneo\Pim\ApiClient\AkeneoPimClientInterface;
 use Symfony\Component\Console\{
     Attribute\AsCommand,
     Command\Command,
@@ -35,6 +35,7 @@ class GetAssetsCommand extends Command
             ->addArgument('secret', InputArgument::REQUIRED, 'Secret.')
             ->addArgument('username', InputArgument::REQUIRED, 'Username.')
             ->addArgument('password', InputArgument::REQUIRED, 'Password.')
+            ->addArgument('batchSize', InputArgument::OPTIONAL, 'Batch size.', 1000)
             ->addArgument('totalAssets', InputArgument::OPTIONAL, 'Total assets.', 25183);
     }
 
@@ -44,19 +45,18 @@ class GetAssetsCommand extends Command
 
         $clientBuilder = new AkeneoPimClientBuilder($input->getArgument('url'));
         $client = $clientBuilder->buildAuthenticatedByPassword($input->getArgument('clientId'), $input->getArgument('secret'), $input->getArgument('username'), $input->getArgument('password'));
-        $assets = $client->getAssetManagerApi();
 
         $progressBar = new ProgressBar($output, intval($input->getArgument('totalAssets')));
         $progressBar->start();
 
-        $families = [
-            ['internes' => 'A_visuelsinternes'],
-            ['autres' => 'A_autresmedias'],
-            ['externes' => 'A_visuelsexternes']
-        ];
+        $families = $this->getFamilies();
+
+        if (!$families) {
+            $io->info('No families file detected.');
+        }
 
         foreach ($families as $family) {
-            $this->getAssets($assets, $family, $progressBar);
+            $this->getAssets($client, $family, $progressBar, intval($input->getArgument('batchSize')));
         }
 
         $progressBar->finish();
@@ -65,25 +65,67 @@ class GetAssetsCommand extends Command
         return Command::SUCCESS;
     }
 
-    public function getAssets(AssetManagerApiInterface $assets, array $family, ProgressBar $progressBar): void
+    public function getFamilies(): array|null
     {
-        $totalFamilyAssets = 0;
-        $numberFile = null;
+        if (!file_exists(CommandInterface::PATH_FAMILIES . 'families.csv')) {
+            return null;
+        }
+
+        $separator = ';';
+        $families = [];
+        $headers = '';
+
+        $csvFile = file(CommandInterface::PATH_FAMILIES . 'families.csv');
+        foreach ($csvFile as $index => $line) {
+            if ($index === 0) {
+                $headers = str_getcsv($line, $separator);
+                continue;
+            }
+            $families[] = array_combine($headers, str_getcsv($line, $separator));
+        }
+
+        return $families;
+    }
+
+    public function getAssets(AkeneoPimClientInterface $client , array $family, ProgressBar $progressBar, int $batchSize): void
+    {
+        $fp = fopen(CommandInterface::LIST_CODES, 'a');
+        $alreadyProcess = file_get_contents(CommandInterface::LIST_CODES);
 
         $allAssets = [];
-        foreach ($assets->all(array_values($family)[0]) as $asset) {
-            // If we have more than 13.000 assets in a family we create a first .txt document
-            if (count($allAssets) >= 13000) {
-                file_put_contents('docs/assets/' . array_keys($family)[0] . '/data1.txt', json_encode($allAssets));
-                $numberFile = $numberFile? $numberFile+1 :2;
-                $totalFamilyAssets = 0;
-                $allAssets = [];
+        $numberFile = 1;
+        $totalFamilyAssets = 0;
+
+        foreach ($client->getAssetManagerApi()->all($family['code']) as $asset) {
+            if (in_array($asset['code'],  explode(',', $alreadyProcess))) {
+                $progressBar->advance();
+                continue;
             }
 
             $allAssets[] = $asset;
             $totalFamilyAssets++;
+
+            if (count($allAssets) >= $batchSize) {
+                $this->downloadAssets($family['folder'], $numberFile, $allAssets);
+
+                $numberFile++;
+                $totalFamilyAssets = 0;
+                $allAssets = [];
+            }
+
+            fwrite($fp, $asset['code'] . ',');
             $progressBar->advance();
         }
-        file_put_contents('docs/assets/' . array_keys($family)[0] . '/data' . $numberFile . '.txt', json_encode($allAssets));
+
+        if (!empty($allAssets)) {
+            $this->downloadAssets($family['folder'], $numberFile, $allAssets);
+        }
+    }
+
+    public function downloadAssets(string $family, int $numberFile, array $allAssets): void
+    {
+        $fileName = CommandInterface::PATH_ASSETS . $family . '/data_' . $numberFile . '.txt';
+
+        file_put_contents($fileName, json_encode($allAssets));
     }
 }
