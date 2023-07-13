@@ -79,27 +79,14 @@ class PostAssetsCommand extends Command
                 $this->deleteMedia();
             }
 
-            $body = [
-                "code"=> $asset['code'],
-                "values"=> [
-                    "media"=> [
-                        "locale"=> null,
-                        "channel"=> null,
-                        "data"=> $asset['values']['media'][0]['data']
-                    ],
-                ],
-                "end_of_use_date"=> [
-                      "locale"=> null,
-                    "channel"=> null,
-                    "data"=> null
-                ],
-                "created"=> new \DateTime(),
-                "updated"=> new \DateTime()
-            ];
-
-            $client = new Client();
-            $request = new Request('PATCH', $url . 'api/rest/v1/asset-families/' . $family . '/assets', $headers, json_encode($body));
-            $client->sendAsync($request);
+            $client->getAssetManagerApi()->upsert($family, $asset['code'], [
+                'code' => $asset['code'],
+                'values' => [
+                    'label' => [
+                        ['locale' => 'fr_FR', 'channel' => null, 'data' => $asset['values']['media'][0]['data']],
+                    ]
+                ]
+            ]);
         }
     }
 
