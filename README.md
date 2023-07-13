@@ -1,18 +1,26 @@
 # sf-synchronize-assets
 
+## Before
 
+créer un fichier csv families.csv dans /docs/families/
+
+fichier qui a cette forme:
+```csv
+folder;code
+family_folder_1;family_code_1
+family_folder_2;family_code_2
+family_folder_3;family_code_3
 ```
-Put ALL assets of others family in .txt
 
-call api v5
-CALL AUTH
-CALL GET
-Boucle sur les assets
-stocker tout dans une même fichier text (format json)
 
-call api v7 (api local pour test)
-CALL AUTH
-boucle sur le json provenant du fichier text
-Call POST pour ajouter les médias
-Call POST pour ajouter les assets et les links à leur média
-```
+## GetAssetsCommand
+### Command arguments
+
+
+- url
+- clientId
+- secret
+- username
+- password
+- batchSize
+- totalAssets

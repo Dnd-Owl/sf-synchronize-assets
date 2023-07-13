@@ -55,8 +55,10 @@ class PostAssetsCommand extends Command
         ];
 
         foreach ($families as $family) {
+            // scandir -> symfony finder
             $files = array_diff(scandir('docs/assets/' . array_keys($family)[0], SCANDIR_SORT_DESCENDING), ['..', '.', '.gitkeep']);
             foreach ($files as $file) {
+                // vérifier
                 $assets = json_decode(file_get_contents('docs/assets/' . array_keys($family)[0] . '/' . $file), true);
 
                 $this->uploadAssetsAndMedias($client, array_values($family)[0], $assets, $input->getArgument('url'), $progressBar);
@@ -104,7 +106,9 @@ class PostAssetsCommand extends Command
 
     public function uploadMedia(AkeneoPimClientInterface $client): void
     {
-        $client->getAssetMediaFileApi()->create('docs/media/media_asset.jpg');
+        $mediaFileResponse = $client->getAssetMediaFileApi()->create('docs/media/media_asset.jpg');
+        dump($mediaFileResponse);
+        die;
     }
 
     public function deleteMedia(): void
