@@ -72,8 +72,9 @@ class PostAssetsCommand extends Command
 
         foreach ($assets as $asset) {
             if (isset($asset['values']['media'][0]['data'])) {
+                // download media in local -> upload on SASS -> delete media in local
                 $this->downloadMedia($asset);
-                $this->uploadMedia($client, $asset);
+                $this->uploadMedia($client);
                 $this->deleteMedia();
             }
 
@@ -113,16 +114,9 @@ class PostAssetsCommand extends Command
         file_put_contents('docs/media/media_asset.jpg', $mediaFile->getBody()->getContents());
     }
 
-    public function uploadMedia(AkeneoPimClientInterface $client, array $asset): void
+    public function uploadMedia(AkeneoPimClientInterface $client): void
     {
-        // WIP
-        $regex = '/^(.*\/).*$/';
-        preg_match($regex, $asset['values']['media'][0]['data'], $matches);
-        $path = $matches[1];
-
-        if (!file_exists($path)) {
-            mkdir($path, 0777, true);
-        }
+        $client->getAssetMediaFileApi()->create('docs/media/media_asset.jpg');
     }
 
     public function deleteMedia(): void
