@@ -9,11 +9,11 @@ use Akeneo\Pim\ApiClient\AkeneoPimClientInterface;
 use Symfony\Component\Console\{
     Attribute\AsCommand,
     Command\Command,
+    Helper\ProgressBar,
     Input\InputArgument,
     Input\InputInterface,
     Output\OutputInterface,
-    Style\SymfonyStyle
-};
+    Style\SymfonyStyle};
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 
@@ -36,12 +36,16 @@ class PostAssetsCommand extends Command
             ->addArgument('clientId', InputArgument::REQUIRED, 'Client ID.')
             ->addArgument('secret', InputArgument::REQUIRED, 'Secret.')
             ->addArgument('username', InputArgument::REQUIRED, 'Username.')
-            ->addArgument('password', InputArgument::REQUIRED, 'Password.');
+            ->addArgument('password', InputArgument::REQUIRED, 'Password.')
+            ->addArgument('totalAssets', InputArgument::OPTIONAL, 'Total assets.', 25183);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+
+        $progressBar = new ProgressBar($output, intval($input->getArgument('totalAssets')));
+        $progressBar->start();
 
         $clientBuilder = new AkeneoPimClientBuilder($input->getArgument('url'));
         $client = $clientBuilder->buildAuthenticatedByPassword($input->getArgument('clientId'), $input->getArgument('secret'), $input->getArgument('username'), $input->getArgument('password'));
@@ -57,20 +61,18 @@ class PostAssetsCommand extends Command
             foreach ($files as $file) {
                 $assets = json_decode(file_get_contents('docs/assets/' . array_keys($family)[0] . '/' . $file), true);
 
-                $this->uploadAssetsAndMedias($client, array_values($family)[0], $assets, $input->getArgument('url'));
+                $this->uploadAssetsAndMedias($client, array_values($family)[0], $assets, $input->getArgument('url'), $progressBar);
             }
         }
+
+        $progressBar->finish();
 
         $io->success('SUCCESS');
         return Command::SUCCESS;
     }
 
-    public function uploadAssetsAndMedias(AkeneoPimClientInterface $client, string $family, array $assets, string $url):void
+    public function uploadAssetsAndMedias(AkeneoPimClientInterface $client, string $family, array $assets, string $url, ProgressBar $progressBar):void
     {
-        $headers = [
-            'Authorization' => 'Bearer' . $client->getToken()
-        ];
-
         foreach ($assets as $asset) {
             if (isset($asset['values']['media'][0]['data'])) {
                 // download media in local -> upload on SASS -> delete media in local
@@ -83,10 +85,12 @@ class PostAssetsCommand extends Command
                 'code' => $asset['code'],
                 'values' => [
                     'label' => [
-                        ['locale' => 'fr_FR', 'channel' => null, 'data' => $asset['values']['media'][0]['data']],
+                        ['locale' => 'fr_FR', 'channel' => null, 'data' => $asset['values']['media'][0]['data']??null],
                     ]
                 ]
             ]);
+
+            $progressBar->advance();
         }
     }
 
