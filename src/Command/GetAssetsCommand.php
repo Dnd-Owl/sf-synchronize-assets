@@ -123,7 +123,7 @@ class GetAssetsCommand extends Command
 
     public function downloadAssets(array $family, array $allAssets): void
     {
-        $numberFile = 0;
+        $numberFile = 1;
         $finder = new Finder();
         $finder->files()->in(CommandInterface::PATH_ASSETS . $family['folder']);
 
