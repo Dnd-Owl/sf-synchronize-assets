@@ -106,7 +106,7 @@ class GetAssetsCommand extends Command
             $totalFamilyAssets++;
 
             if (count($allAssets) >= $batchSize) {
-                $this->downloadAssets($family['folder'], $numberFile, $allAssets);
+                $this->downloadAssets($family, $numberFile, $allAssets);
 
                 $numberFile++;
                 $totalFamilyAssets = 0;
@@ -118,13 +118,13 @@ class GetAssetsCommand extends Command
         }
 
         if (!empty($allAssets)) {
-            $this->downloadAssets($family['folder'], $numberFile, $allAssets);
+            $this->downloadAssets($family, $numberFile, $allAssets);
         }
     }
 
-    public function downloadAssets(string $family, int $numberFile, array $allAssets): void
+    public function downloadAssets(array $family, int $numberFile, array $allAssets): void
     {
-        $fileName = CommandInterface::PATH_ASSETS . $family . '/data_' . $numberFile . '.txt';
+        $fileName = CommandInterface::PATH_ASSETS . $family['folder'] . '/data_' . $numberFile . '.txt';
 
         file_put_contents($fileName, json_encode($allAssets));
     }
