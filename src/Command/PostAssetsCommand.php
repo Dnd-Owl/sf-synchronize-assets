@@ -14,8 +14,6 @@ use Symfony\Component\Console\{
     Input\InputInterface,
     Output\OutputInterface,
     Style\SymfonyStyle};
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Request;
 
 /**
  * @author    Agence Dn'D <contact@dnd.fr>
