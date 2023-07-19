@@ -28,6 +28,14 @@ use Symfony\Component\Finder\Finder;
 )]
 class GetAssetsCommand extends Command
 {
+    public const PATH_ASSETS = 'docs/assets/';
+
+    public const PATH_FAMILIES = 'docs/families/families.csv';
+
+    public const PATH_MEDIA = 'docs/media/';
+
+    public const LIST_CODES = 'docs/assets/process/codes_list.txt';
+
     protected function configure(): void
     {
         $this
@@ -68,7 +76,7 @@ class GetAssetsCommand extends Command
 
     public function getFamilies(): array|null
     {
-        if (!file_exists(CommandInterface::PATH_FAMILIES)) {
+        if (!file_exists(GetAssetsCommand::PATH_FAMILIES)) {
             return null;
         }
 
@@ -76,7 +84,7 @@ class GetAssetsCommand extends Command
         $families = [];
         $headers = '';
 
-        $csvFile = file(CommandInterface::PATH_FAMILIES);
+        $csvFile = file(GetAssetsCommand::PATH_FAMILIES);
         foreach ($csvFile as $index => $line) {
             if ($index === 0) {
                 $headers = str_getcsv($line, $separator);
@@ -90,8 +98,8 @@ class GetAssetsCommand extends Command
 
     public function getAssets(AkeneoPimClientInterface $client , array $family, ProgressBar $progressBar, int $batchSize): void
     {
-        $fp = fopen(CommandInterface::LIST_CODES, 'a');
-        $alreadyProcess = file_get_contents(CommandInterface::LIST_CODES);
+        $fp = fopen(GetAssetsCommand::LIST_CODES, 'a');
+        $alreadyProcess = file_get_contents(GetAssetsCommand::LIST_CODES);
 
         $allAssets = [];
         $totalFamilyAssets = 0;
@@ -125,17 +133,22 @@ class GetAssetsCommand extends Command
     {
         $numberFile = 1;
         $finder = new Finder();
-        $finder->files()->in(CommandInterface::PATH_ASSETS . $family['folder']);
+        $finder->files()->in(GetAssetsCommand::PATH_ASSETS . $family['folder']);
 
         if ($finder->hasResults()) {
             foreach ($finder as $file) {
-                $numberFile = intval(substr($file->getRelativePathname(), strlen('data_')+strpos($file->getRelativePathname(), '-'), (strlen($file->getRelativePathname()) - strpos($file->getRelativePathname(), '.txt'))*(-1)));
+                $relativePathname = $file->getRelativePathname();
+                $startPosition = strlen('data_') + strpos($relativePathname, '-');
+                $endPosition = strpos($relativePathname, '.txt');
+                $numberFile = intval(substr($relativePathname, $startPosition, $endPosition - $startPosition));
+
                 $numberFile++;
             }
         }
 
-        $fileName = CommandInterface::PATH_ASSETS . $family['folder'] . '/data_' . $numberFile . '.txt';
+        $filePath = GetAssetsCommand::PATH_ASSETS . $family['folder'];
+        $fileName = '/data_' . $numberFile . '.txt';
 
-        file_put_contents($fileName, json_encode($allAssets));
+        file_put_contents($filePath . $fileName, json_encode($allAssets));
     }
 }
